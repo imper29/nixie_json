@@ -6,7 +6,7 @@ int main(int argc, const char* argv[]) {
 	nix::json_heap json;
 
 	//load and print main json file.
-	nix::json_node root = json.load_file("examples/main.json");
+	nix::json_node root = json.load_file("main.json");
 	printf("[main.json]\n%s\n", json.save_string(root));
 
 	//load and print argv json files.
