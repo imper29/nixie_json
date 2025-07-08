@@ -1,0 +1,22 @@
+{
+  "boolean_t": true,
+  "boolean_f": false,
+  "number_int": 1,
+  "number_float": 1.1,
+  "number_exponent1": 2e3,
+  "number_exponent2": 1e-3,
+  "number_negative3": -1,
+  "number_negative4": -1e-2,
+  "null": null,
+  "player": {
+    "name": "steve",
+    "age": 9001,
+
+    "items": [
+      "kimchi",
+      "a little man",
+      "five pairs of earbuds\u4444",
+      13
+    ]
+  }
+}
