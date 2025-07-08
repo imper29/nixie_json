@@ -10,12 +10,13 @@
   "null": null,
   "player": {
     "name": "steve",
+    "blurb": "likes long\"\\\/walks\b on\f the beach.\nmisses\t his old town.",
     "age": 9001,
 
     "items": [
       "kimchi",
       "a little man",
-      "five pairs of earbuds\u4444",
+      "five pairs of earbuds",
       13
     ]
   }

@@ -40,7 +40,7 @@ int main(int argc, const char* argv[]) {
 	nix::json_node gen = json.new_object();
 	nix::json_node child = json.new_object(gen, "child");
 	json.new_string(child, "name", "steve");
-	nix::json_node grandchild = json.new_object(child, "grandchild");
+	nix::json_node grandchild = json.new_object(child, "grand\nchild");
 	json.new_string(grandchild, "name", "mike");
 	printf("%s\n", json.save_string(gen));
 

@@ -4,6 +4,43 @@
 #include "fstream"
 
 struct nix::json_heap::json_utils {
+	static constexpr char escapes[256] = {
+		0,0,0,0,0,0,0,0,'b','t','n',0,'f','r',0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,'"',0,0,0,0,0,0,0,0,0,0,0,0,'/',
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,'\\',0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	};
+	static constexpr char dscapes[256] = {
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,'"',0,0,0,0,0,0,0,0,0,0,0,0,
+		'/',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,'\\',0,0,
+		0,0,0,'\b',0,0,0,'\f',0,0,0,0,0,0,0,'\n',
+		0,0,0,'\r',0,'\t',0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+	};
+
 	inline static json_node alloc_string(json_heap& h, json_string string) noexcept {
 		size_t lengthl = strlen(string) + 1;
 		if (lengthl > std::numeric_limits<uint32_t>::max())
@@ -110,16 +147,37 @@ struct nix::json_heap::json_utils {
 		h.m_dump_count += l;
 		return true;
 	}
-	inline static bool dump_string(json_heap& h, json_string& s, json_char e) noexcept {
-		size_t l = 0;
-		while (s[l] && s[l] != e) ++l;
-		if (s[l] != e)
-			return false;
-		if (!dump_grow(h, l))
-			return false;
-		memcpy(h.m_dump + h.m_dump_count, s, l);
-		h.m_dump_count += l;
-		++s += l;
+	inline static bool dump_string_escaped(json_heap& h, json_string s) noexcept {
+		while (*s != '\0') {
+			if (!dump_grow(h, 2))
+				return false;
+			if (escapes[*s]) {
+				h.m_dump[h.m_dump_count++] = '\\';
+				h.m_dump[h.m_dump_count++] = escapes[*s];
+			}
+			else {
+				h.m_dump[h.m_dump_count++] = *s;
+			}
+			++s;
+		}
+		return true;
+	}
+	inline static bool dump_string_dscaped(json_heap& h, json_string& s, json_char e) noexcept {
+		while (*s && *s != e) {
+			if (!dump_grow(h, 2))
+				return false;
+			if (*s == '\\') {
+				if (dscapes[*++s])
+					h.m_dump[h.m_dump_count++] = dscapes[*s];
+				else
+					return false;
+			}
+			else {
+				h.m_dump[h.m_dump_count++] = *s;
+			}
+			++s;
+		}
+		return *s++ == e;
 		return true;
 	}
 
@@ -154,7 +212,7 @@ struct nix::json_heap::json_utils {
 		//string
 		if (*source == '"') {
 			dump_clear(heap);
-			if (!dump_string(heap, ++source, '"')) return 0;
+			if (!dump_string_dscaped(heap, ++source, '"')) return 0;
 			if (!dump_char(heap, '\0')) return 0;
 			return heap.new_string(heap.m_dump);
 		}
@@ -170,7 +228,7 @@ struct nix::json_heap::json_utils {
 			while (*source == '"') {
 				dump_clear(heap);
 				if (!do_whitespace(++source)) return 0;
-				if (!dump_string(heap, source, '"')) return 0;
+				if (!dump_string_dscaped(heap, source, '"')) return 0;
 				if (!dump_char(heap, '\0')) return 0;
 				if (*source++ != ':') return 0;
 				json_node name = alloc_string(heap, heap.m_dump);
@@ -243,7 +301,7 @@ struct nix::json_heap::json_utils {
 		//string
 		if (*source == '"') {
 			dump_clear(heap);
-			if (!dump_string(heap, ++source, '"')) return 0;
+			if (!dump_string_dscaped(heap, ++source, '"')) return 0;
 			if (!dump_char(heap, '\0')) return 0;
 			return heap.new_string(heap.m_dump);
 		}
@@ -257,7 +315,7 @@ struct nix::json_heap::json_utils {
 			}
 			while (*source == '"') {
 				dump_clear(heap);
-				if (!dump_string(heap, ++source, '"')) return 0;
+				if (!dump_string_dscaped(heap, ++source, '"')) return 0;
 				if (!dump_char(heap, '\0')) return 0;
 				if (*source++ != ':') return 0;
 				json_node name = alloc_string(heap, heap.m_dump);
@@ -319,7 +377,7 @@ struct nix::json_heap::json_utils {
 			return dump_number(heap, heap.to_number(source));
 		}
 		if (type == json_type_string) {
-			return dump_char(heap, '\"') && dump_string(heap, heap.to_string(source)) && dump_char(heap, '\"');
+			return dump_char(heap, '\"') && dump_string_escaped(heap, heap.to_string(source)) && dump_char(heap, '\"');
 		}
 		if (type == json_type_object) {
 			if (!dump_char(heap, '{')) return false;
@@ -329,7 +387,7 @@ struct nix::json_heap::json_utils {
 				if (!dump_char(heap, '\n')) return false;
 				if (!dump_pad(heap, d + 1)) return false;
 				if (!dump_char(heap, '\"')) return false;
-				if (!dump_string(heap, heap.get_name(curr))) return false;
+				if (!dump_string_escaped(heap, heap.get_name(curr))) return false;
 				if (!dump_string(heap, "\": ")) return false;
 				if (!save_pretty(heap, curr, d + 1)) return false;
 				if (curr != last && !dump_char(heap, ',')) return false;
@@ -378,7 +436,7 @@ struct nix::json_heap::json_utils {
 			return dump_number(heap, heap.to_number(source));
 		}
 		if (type == json_type_string) {
-			return dump_char(heap, '\"') && dump_string(heap, heap.to_string(source)) && dump_char(heap, '\"');
+			return dump_char(heap, '\"') && dump_string_escaped(heap, heap.to_string(source)) && dump_char(heap, '\"');
 		}
 		if (type == json_type_object) {
 			if (!dump_char(heap, '{')) return false;
@@ -386,7 +444,7 @@ struct nix::json_heap::json_utils {
 			json_node last = heap.get_last(source);
 			while (curr) {
 				if (!dump_char(heap, '\"')) return false;
-				if (!dump_string(heap, heap.get_name(curr))) return false;
+				if (!dump_string_escaped(heap, heap.get_name(curr))) return false;
 				if (!dump_string(heap, "\":")) return false;
 				if (!save_dense(heap, curr)) return false;
 				if (curr != last && !dump_char(heap, ',')) return false;
