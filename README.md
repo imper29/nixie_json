@@ -6,7 +6,7 @@ c++ json utilities for saving, loading, and generating json documents and docume
 contains example code with comments describing how to use the package.
 
 ## limits
-does not support unicode characters yet.
+does not support unicode \u#### characters yet.
 
 ## install
 [nixie_encoding/json.cpp](https://github.com/imper29/nixie_json/blob/main/nixie_json/nixie_encoding/json.cpp) and 
