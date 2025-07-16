@@ -53,12 +53,6 @@ namespace nix {
 	/// </summary>
 	struct json_heap final {
 		/// <summary>
-		/// True if errors should cause the program to be aborted after the error is reported to the developer.
-		/// False if you're a god like programmer who doesn't make mistakes.
-		/// </summary>
-		static constexpr bool validation = true;
-
-		/// <summary>
 		/// Deconstructs the heap, all nodes, and all strings.
 		/// </summary>
 		~json_heap() noexcept;
